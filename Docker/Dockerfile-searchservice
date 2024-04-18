@@ -1,0 +1,5 @@
+FROM tomcat:8.5-jdk11-openjdk
+
+COPY ./SearchEvent-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/SearchEvent.war
+
+EXPOSE 8080

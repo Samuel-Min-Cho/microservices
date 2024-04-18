@@ -1,0 +1,301 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: searchdb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searchdb
+spec:
+  selector:
+    app: searchdb
+  ports:
+    - port: 3306
+      targetPort: 3306
+---     
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searchdb
+spec:
+  selector:
+    matchLabels:
+      app: searchdb
+  template:
+    metadata:
+      labels:
+        app: searchdb
+    spec:
+      containers:
+        - name: searchdb
+          image: m32cho/coe692:searchdb
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: storage
+              mountPath: /data/searchdb
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: searchdb-pvc
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: invitedb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: invitedb
+spec:
+  selector:
+    app: invitedb
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invitedb
+spec:
+  selector:
+    matchLabels:
+      app: invitedb
+  template:
+    metadata:
+      labels:
+        app: invitedb
+    spec:
+      containers:
+        - name: invitedb
+          image: m32cho/coe692:invitedb
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: storage
+              mountPath: /data/invitedb
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: invitedb-pvc
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reinvitedb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reinvitedb
+spec:
+  selector:
+    app: reinvitedb
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reinvitedb
+spec:
+  selector:
+    matchLabels:
+      app: reinvitedb
+  template:
+    metadata:
+      labels:
+        app: reinvitedb
+    spec:
+      containers:
+        - name: reinvitedb
+          image: m32cho/coe692:reinvitedb
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: storage
+              mountPath: /data/reinvitedb
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: reinvitedb-pvc
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontendservice
+spec:
+  selector:
+    app: frontendservice
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontendservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontendservice
+  template:
+    metadata:
+      labels:
+        app: frontendservice
+    spec:
+      containers:
+        - name: frontendservice
+          image: m32cho/coe692:frontendservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: searchService
+              value: searchservice:80
+
+            - name: inviteService
+              value: inviteservice:80
+          imagePullPolicy: Always
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: searchservice
+spec:
+  selector:
+    app: searchservice
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searchservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searchservice
+  template:
+    metadata:
+      labels:
+        app: searchservice
+    spec:
+      containers:
+        - name: searchservice
+          image: m32cho/coe692:searchservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: searchdb:3306
+            - name: kubeMQAddress
+              value: 10.28.133.70:50000
+          imagePullPolicy: Always
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: inviteservice
+spec:
+  selector:
+    app: inviteservice
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inviteservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inviteservice
+  template:
+    metadata:
+      labels:
+        app: inviteservice
+    spec:
+      containers:
+        - name: inviteservice
+          image: m32cho/coe692:inviteservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: invitedb:3306
+            - name: kubeMQAddress
+              value: 10.28.133.70:50000
+          imagePullPolicy: Always
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: reinviteservice
+spec:
+  selector:
+    app: reinviteservice
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reinviteservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reinviteservice
+  template:
+    metadata:
+      labels:
+        app: reinviteservice
+    spec:
+      containers:
+        - name: reinviteservice
+          image: m32cho/coe692:reinviteservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: reinvitedb:3306
+            - name: kubeMQAddress
+              value: 10.28.133.70:50000
+          imagePullPolicy: Always
+---
